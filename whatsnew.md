@@ -1,3 +1,14 @@
+### 7.2.11
+
+Fix the issue where new events were duplicated in React Scheduler if the save handler did not return a new ID
+Fix the issue where Timeline view templates were not applied in React Scheduler
+Fix the incorrect binding of events to sections in Timeline view when filtering is used in React Scheduler
+Fix the script error in the Agenda view when the date section is not included in the header configuration
+Fix the incorrect display of header elements in the Year and Agenda views when using the Material skin
+Fix the broken layout in React Scheduler when switching from a plugin-based initial view to standard views
+Fix the issue where a phantom event block appeared when an all-day recurring event had a duration of exactly 24 hours
+Fix the issue where the Lightbox failed to open when creating multiple events via drag on the same day in the Month view with the year_view plugin activated
+
 ### 7.2.10
 
 Fix the issue where events jumped to the left when being dragged from the last column in the multiday Units view

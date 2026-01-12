@@ -3,7 +3,7 @@
 })(this, function(exports2) {
   "use strict";/** @license
 
-dhtmlxScheduler v.7.2.10 Standard
+dhtmlxScheduler v.7.2.11 Standard
 
 To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product), please obtain Commercial/Enterprise or Ultimate license on our site https://dhtmlx.com/docs/products/dhtmlxScheduler/#licensing or contact us at sales@dhtmlx.com
 
@@ -2169,7 +2169,25 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
           this.$container.insertBefore(materialScalePlaceholder, this._els["dhx_cal_header"][0]);
         }
         materialScalePlaceholder.style.display = "block";
-        this.set_xy(materialScalePlaceholder, w, this.xy.scale_height + 1, 0, this._els["dhx_cal_header"][0].offsetTop);
+        const navElement = scheduler2.$root.querySelector(".dhx_cal_navline");
+        let navHeight = 0;
+        if (navElement) {
+          navHeight += navElement.offsetHeight;
+        }
+        const headerElement = scheduler2.$root.querySelector(".dhx_cal_header");
+        let headerHeight = 0;
+        if (headerElement) {
+          headerHeight += headerElement.offsetHeight;
+        }
+        let offsetTop, offsetHeight;
+        if (!headerHeight) {
+          offsetTop = navHeight - 4;
+          offsetHeight = 5;
+        } else {
+          offsetTop = navHeight + 1;
+          offsetHeight = headerHeight;
+        }
+        this.set_xy(materialScalePlaceholder, w, offsetHeight, 0, offsetTop);
       } else {
         if (materialScalePlaceholder) {
           materialScalePlaceholder.parentNode.removeChild(materialScalePlaceholder);
@@ -3061,11 +3079,8 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
       var container = this._obj;
       var oldClass = "dhx_scheduler_" + this._mode;
       var newClass = "dhx_scheduler_" + mode;
-      if (!this._mode || container.className.indexOf(oldClass) == -1) {
-        container.className += " " + newClass;
-      } else {
-        container.className = container.className.replace(oldClass, newClass);
-      }
+      container.classList.remove(oldClass);
+      container.classList.add(newClass);
       var dhx_multi_day = "dhx_multi_day";
       var prev_scroll = this._mode == mode && this.config.preserve_scroll ? this._els[dhx_cal_data][0].scrollTop : false;
       var multidayScroll;
@@ -4205,6 +4220,7 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
       this.clearAll();
       if (this.$container) {
         this.$container.innerHTML = "";
+        this.$container.classList.remove(`dhx_scheduler_${this._mode}`);
       }
       if (this._eventRemoveAll) {
         this._eventRemoveAll();
@@ -9241,7 +9257,7 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
     }
   }
   function factoryMethod(extensionManager) {
-    const scheduler2 = { version: "7.2.10" };
+    const scheduler2 = { version: "7.2.11" };
     scheduler2.$stateProvider = StateService();
     scheduler2.getState = scheduler2.$stateProvider.getState;
     extend$n(scheduler2);
@@ -9725,7 +9741,10 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
           scheduler2._colsS = null;
           scheduler2._table_view = true;
           const dateHeader = scheduler2._getNavDateElement();
-          dateHeader.innerHTML = scheduler2.templates.agenda_date(scheduler2._date);
+          if (dateHeader) {
+            dateHeader.innerHTML = scheduler2.templates.agenda_date(scheduler2._date);
+          }
+          scheduler2.set_sizes();
           fill_agenda_tab();
         } else {
           scheduler2._table_view = false;
@@ -19021,7 +19040,7 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
           copy.start_date = date;
           copy.id = ev.id + "#" + Math.ceil(date.valueOf());
           copy.end_date = new Date(date.valueOf() + eventDuration * 1e3);
-          if (copy.end_date.valueOf() < scheduler2._min_date.valueOf()) {
+          if (copy.end_date.valueOf() <= scheduler2._min_date.valueOf()) {
             continue;
           }
           copy.end_date = scheduler2._fix_daylight_saving_date(copy.start_date, copy.end_date, ev, date, copy.end_date);
@@ -21285,6 +21304,9 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
     var locateEvent = scheduler2._locate_event;
     scheduler2._locate_event = function(node) {
       var id = locateEvent.apply(scheduler2, arguments);
+      if (!isYearMode()) {
+        return id;
+      }
       if (!id) {
         var date = getCellDate(node);
         if (!date)
