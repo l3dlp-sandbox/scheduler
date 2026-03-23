@@ -3,7 +3,7 @@
 })(this, function(exports2) {
   "use strict";/** @license
 
-dhtmlxScheduler v.7.2.11 Standard
+dhtmlxScheduler v.7.2.12 Standard
 
 To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product), please obtain Commercial/Enterprise or Ultimate license on our site https://dhtmlx.com/docs/products/dhtmlxScheduler/#licensing or contact us at sales@dhtmlx.com
 
@@ -1301,7 +1301,7 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
       if (scheduler2._dp && scheduler2._dp._in_progress[event2.id]) {
         return;
       }
-      if (type === "add-event") {
+      if (type === "add-event" && scheduler2._dp) {
         for (const id in scheduler2._dp._in_progress) {
           if (scheduler2._dp.getState(id) === "inserted") {
             scheduler2._dp.attachEvent("onFullSync", function() {
@@ -1340,9 +1340,13 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
         console.warn(`Event with ID ${eventData.id} already exists. Skipping add.`);
         return;
       }
-      eventData.start_date = scheduler2.templates.parse_date(eventData.start_date);
-      eventData.end_date = scheduler2.templates.parse_date(eventData.end_date);
-      if (eventData.original_start) {
+      if (typeof eventData.start_date === "string") {
+        eventData.start_date = scheduler2.templates.parse_date(eventData.start_date);
+      }
+      if (typeof eventData.end_date === "string") {
+        eventData.end_date = scheduler2.templates.parse_date(eventData.end_date);
+      }
+      if (eventData.original_start && typeof eventData.original_start === "string") {
         eventData.original_start = scheduler2.templates.parse_date(eventData.original_start);
       }
       ignore(() => {
@@ -1362,9 +1366,13 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
             existingEvent[key] = eventData[key];
           }
         }
-        existingEvent.start_date = scheduler2.templates.parse_date(eventData.start_date);
-        existingEvent.end_date = scheduler2.templates.parse_date(eventData.end_date);
-        if (eventData.original_start) {
+        if (typeof eventData.start_date === "string") {
+          eventData.start_date = scheduler2.templates.parse_date(eventData.start_date);
+        }
+        if (typeof eventData.end_date === "string") {
+          eventData.end_date = scheduler2.templates.parse_date(eventData.end_date);
+        }
+        if (eventData.original_start && typeof eventData.original_start === "string") {
           eventData.original_start = scheduler2.templates.parse_date(eventData.original_start);
         }
         scheduler2.callEvent("onEventChanged", [sid, existingEvent]);
@@ -2095,18 +2103,21 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
       });
       return views.concat(date).concat(nav);
     }
+    scheduler2._getInitialState = function(provided) {
+      const initialDate = provided.date || this._currentDate();
+      const initialView = provided.mode || "week";
+      return { date: initialDate, mode: initialView };
+    };
     scheduler2.init = function(id, date, mode) {
       if (this.$destroyed) {
         return;
       }
-      date = date || scheduler2._currentDate();
-      mode = mode || "week";
-      if (this._obj) {
-        this.unset_actions();
-      }
       this._obj = typeof id == "string" ? document.getElementById(id) : id;
       this.$container = this._obj;
       this.$root = this._obj;
+      if (this._obj) {
+        this.unset_actions();
+      }
       if (!this.$container.offsetHeight && this.$container.offsetWidth && this.$container.style.height === "100%") {
         window.console.error(scheduler2._commonErrorMessages.collapsedContainer(), this.$container);
       }
@@ -2144,9 +2155,12 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
       this._init_once();
       this._init_touch_events();
       this.set_sizes();
+      const initialState = scheduler2._getInitialState({ date, mode });
+      const initialDate = initialState.date;
+      const initialMode = initialState.mode;
       scheduler2.callEvent("onSchedulerReady", []);
       scheduler2.$initialized = true;
-      this.setCurrentView(date, mode);
+      this.setCurrentView(initialDate, initialMode);
     };
     scheduler2.xy = { min_event_height: 20, bar_height: 24, scale_width: 50, scroll_width: 18, scale_height: 20, month_scale_height: 20, menu_width: 25, margin_top: 0, margin_left: 0, editor_width: 140, month_head_height: 22, event_header_height: 14 };
     scheduler2.keys = { edit_save: 13, edit_cancel: 27 };
@@ -9257,7 +9271,7 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
     }
   }
   function factoryMethod(extensionManager) {
-    const scheduler2 = { version: "7.2.11" };
+    const scheduler2 = { version: "7.2.12" };
     scheduler2.$stateProvider = StateService();
     scheduler2.getState = scheduler2.$stateProvider.getState;
     extend$n(scheduler2);
@@ -10309,74 +10323,95 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
     }
   }
   function cookie(scheduler2) {
-    function setCookie(name, cookie_param, value) {
-      const str = `${name}=${value}${cookie_param ? `; ${cookie_param}` : ""}`;
-      document.cookie = `${str}; Secure`;
+    function getStorageKey() {
+      return (scheduler2._obj.id || "scheduler") + "_settings";
     }
-    function getCookie(name) {
-      var search = name + "=";
-      if (document.cookie.length > 0) {
-        var offset = document.cookie.indexOf(search);
-        if (offset != -1) {
-          offset += search.length;
-          var end = document.cookie.indexOf(";", offset);
-          if (end == -1)
-            end = document.cookie.length;
-          return document.cookie.substring(offset, end);
-        }
+    const dateToString = scheduler2.date.date_to_str("%Y-%m-%d %H:%i");
+    const stringToDate = scheduler2.date.str_to_date("%Y-%m-%d %H:%i");
+    function safeLocalStorageGet(key) {
+      try {
+        return window.localStorage.getItem(key);
+      } catch (e) {
+        return null;
       }
-      return "";
     }
-    function getCookieName(scheduler3) {
-      return (scheduler3._obj.id || "scheduler") + "_settings";
-    }
-    var first = true;
-    scheduler2.attachEvent("onBeforeViewChange", function(oldMode, oldDate, mode, date) {
-      if (first && scheduler2._get_url_nav) {
-        var urlNavigationPlugin = scheduler2._get_url_nav();
-        if (urlNavigationPlugin.date || urlNavigationPlugin.mode || urlNavigationPlugin.event) {
-          first = false;
-        }
+    function safeLocalStorageSet(key, value) {
+      try {
+        window.localStorage.setItem(key, value);
+        return true;
+      } catch (e) {
+        return false;
       }
-      var cookie2 = getCookieName(scheduler2);
-      if (first) {
-        first = false;
-        var schedulerCookie = getCookie(cookie2);
-        if (schedulerCookie) {
-          if (!scheduler2._min_date) {
-            scheduler2._min_date = date;
+    }
+    function readStoredState() {
+      const storageKey = getStorageKey();
+      const raw = safeLocalStorageGet(storageKey);
+      if (!raw) {
+        return { date: null, mode: null };
+      }
+      let parsed;
+      try {
+        parsed = JSON.parse(raw);
+      } catch (e) {
+        return { date: null, mode: null };
+      }
+      if (!parsed || typeof parsed !== "object") {
+        return { date: null, mode: null };
+      }
+      let parsedDate = null;
+      if (typeof parsed.date === "string" && parsed.date.length > 0) {
+        try {
+          parsedDate = stringToDate(parsed.date);
+          if (isNaN(+parsedDate)) {
+            parsedDate = null;
           }
-          schedulerCookie = unescape(schedulerCookie).split("@");
-          schedulerCookie[0] = this._helpers.parseDate(schedulerCookie[0]);
-          var view = this.isViewExists(schedulerCookie[1]) ? schedulerCookie[1] : mode, date = !isNaN(+schedulerCookie[0]) ? schedulerCookie[0] : date;
-          window.setTimeout(function() {
-            if (scheduler2.$destroyed) {
-              return;
-            }
-            scheduler2.setCurrentView(date, view);
-          }, 1);
-          return false;
+        } catch (e) {
+          parsedDate = null;
         }
       }
+      const parsedMode = typeof parsed.mode === "string" ? parsed.mode : null;
+      return { date: parsedDate, mode: parsedMode };
+    }
+    function urlHasExplicitNavigation() {
+      if (!scheduler2._get_url_nav) {
+        return false;
+      }
+      const urlState = scheduler2._get_url_nav();
+      if (!urlState) {
+        return false;
+      }
+      if (urlState.date || urlState.mode || urlState.event) {
+        return true;
+      }
+      return false;
+    }
+    const originalGetInitialState = scheduler2._getInitialState;
+    scheduler2._getInitialState = function(provided) {
+      const baseState = originalGetInitialState.call(this, provided);
+      if (urlHasExplicitNavigation()) {
+        return baseState;
+      }
+      const storedState = readStoredState();
+      const nextState = { date: baseState.date, mode: baseState.mode };
+      if (storedState.date) {
+        nextState.date = storedState.date;
+      }
+      if (storedState.mode) {
+        try {
+          if (this.isViewExists(storedState.mode)) {
+            nextState.mode = storedState.mode;
+          }
+        } catch (e) {
+        }
+      }
+      return nextState;
+    };
+    scheduler2.attachEvent("onViewChange", function(newMode, newDate) {
+      const storageKey = getStorageKey();
+      const payload = { date: dateToString(newDate), mode: newMode };
+      safeLocalStorageSet(storageKey, JSON.stringify(payload));
       return true;
     });
-    scheduler2.attachEvent("onViewChange", function(newMode, newDate) {
-      var cookie2 = getCookieName(scheduler2);
-      var text = escape(this._helpers.formatDate(newDate) + "@" + newMode);
-      setCookie(cookie2, "expires=Sun, 31 Jan 9999 22:00:00 GMT", text);
-    });
-    var old_load = scheduler2._load;
-    scheduler2._load = function() {
-      var args = arguments;
-      if (!scheduler2._date) {
-        var that = this;
-        window.setTimeout(function() {
-          old_load.apply(that, args);
-        }, 1);
-      } else {
-        old_load.apply(this, args);
-      }
-    };
   }
   const notImplemented = { alert: (extension, assert2) => {
     assert2(false, `The ${extension} extension is not included in this version of dhtmlxScheduler.<br>
@@ -15442,41 +15477,39 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
       scheduler2.hideQuickInfo();
     };
     scheduler2._init_quick_info = function() {
-      if (!this._quick_info_box) {
-        var qi = this._quick_info_box = document.createElement("div");
-        this._waiAria.quickInfoAttr(qi);
-        qi.className = "dhx_cal_quick_info";
-        if (scheduler2.$testmode)
-          qi.className += " dhx_no_animate";
-        if (scheduler2.config.rtl)
-          qi.className += " dhx_quick_info_rtl";
-        var ariaAttr = this._waiAria.quickInfoHeaderAttrString();
-        var html = `
-		<div class="dhx_cal_qi_tcontrols">
-			<a class="dhx_cal_qi_close_btn scheduler_icon close"></a>
+      let qi = this._quick_info_box = document.createElement("div");
+      this._waiAria.quickInfoAttr(qi);
+      qi.className = "dhx_cal_quick_info";
+      if (scheduler2.$testmode)
+        qi.className += " dhx_no_animate";
+      if (scheduler2.config.rtl)
+        qi.className += " dhx_quick_info_rtl";
+      let ariaAttr = this._waiAria.quickInfoHeaderAttrString();
+      let html = `
+	<div class="dhx_cal_qi_tcontrols">
+		<a class="dhx_cal_qi_close_btn scheduler_icon close"></a>
+	</div>
+	<div class="dhx_cal_qi_title" ${ariaAttr}>
+			
+			<div class="dhx_cal_qi_tcontent"></div>
+			<div class="dhx_cal_qi_tdate"></div>
 		</div>
-		<div class="dhx_cal_qi_title" ${ariaAttr}>
-				
-				<div class="dhx_cal_qi_tcontent"></div>
-				<div class="dhx_cal_qi_tdate"></div>
-			</div>
-			<div class="dhx_cal_qi_content"></div>`;
-        html += '<div class="dhx_cal_qi_controls">';
-        var buttons = scheduler2.config.icons_select;
-        for (var i = 0; i < buttons.length; i++) {
-          var ariaAttr = this._waiAria.quickInfoButtonAttrString(this.locale.labels[buttons[i]]);
-          html += `<div ${ariaAttr} class="dhx_qi_big_icon ${buttons[i]}" title="${scheduler2.locale.labels[buttons[i]]}">
-				<div class='dhx_menu_icon ${buttons[i]}'></div><div>${scheduler2.locale.labels[buttons[i]]}</div></div>`;
-        }
-        html += "</div>";
-        qi.innerHTML = html;
-        scheduler2.event(qi, "click", function(ev) {
-          scheduler2._qi_button_click(ev.target || ev.srcElement);
-        });
-        if (scheduler2.config.quick_info_detached) {
-          scheduler2._detachDomEvent(scheduler2._els["dhx_cal_data"][0], "scroll", scheduler2._quick_info_onscroll_handler);
-          scheduler2.event(scheduler2._els["dhx_cal_data"][0], "scroll", scheduler2._quick_info_onscroll_handler);
-        }
+		<div class="dhx_cal_qi_content"></div>`;
+      html += '<div class="dhx_cal_qi_controls">';
+      let buttons = scheduler2.config.icons_select;
+      for (let i = 0; i < buttons.length; i++) {
+        let ariaAttr2 = this._waiAria.quickInfoButtonAttrString(this.locale.labels[buttons[i]]);
+        html += `<div ${ariaAttr2} class="dhx_qi_big_icon ${buttons[i]}" title="${scheduler2.locale.labels[buttons[i]]}">
+			<div class='dhx_menu_icon ${buttons[i]}'></div><div>${scheduler2.locale.labels[buttons[i]]}</div></div>`;
+      }
+      html += "</div>";
+      qi.innerHTML = html;
+      scheduler2.event(qi, "click", function(ev) {
+        scheduler2._qi_button_click(ev.target || ev.srcElement);
+      });
+      if (scheduler2.config.quick_info_detached) {
+        scheduler2._detachDomEvent(scheduler2._els["dhx_cal_data"][0], "scroll", scheduler2._quick_info_onscroll_handler);
+        scheduler2.event(scheduler2._els["dhx_cal_data"][0], "scroll", scheduler2._quick_info_onscroll_handler);
       }
       return this._quick_info_box;
     };
@@ -18210,6 +18243,73 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
     return "".concat(header).concat(dateString);
   }
   function recurring(scheduler2) {
+    scheduler2.ext.recurring = { confirm: function(context) {
+    }, confirmDefault: function showRecurringConfirmModal(context) {
+      const labels = context.labels || {};
+      const options = Array.isArray(context.options) ? context.options : [];
+      if (options.length === 0) {
+        return Promise.resolve(null);
+      }
+      if (options.length === 1) {
+        return Promise.resolve(options[0]);
+      }
+      const modalOptions = options.map((decision, index) => ({ value: decision, label: labelForDecision(decision, labels), checked: index === 0 }));
+      return new Promise((resolve) => {
+        scheduler2.modalbox({ text: `<div class="dhx_edit_recurrence_options">
+			${modalOptions.map((option) => `<label class="dhx_styled_radio">
+				<input type="radio" value="${option.value}" name="option" ${option.checked ? "checked" : ""}>
+				${option.label}
+				</label>`).join("")}
+			</div>`, type: "recurring_mode", title: labels.title || scheduler2.locale.labels.confirm_recurring, width: "auto", position: "middle", buttons: [{ label: labels.ok || scheduler2.locale.labels.message_ok, value: "ok", css: "rec_ok" }, { label: labels.cancel || scheduler2.locale.labels.message_cancel, value: "cancel" }], callback: function onModalClose(value, event2) {
+          if (value === "cancel") {
+            resolve(null);
+            return;
+          }
+          const box = event2.target.closest(".scheduler_modal_box");
+          const checked = box && box.querySelector("input[type='radio']:checked");
+          const selected = checked ? checked.value : null;
+          if (!selected) {
+            resolve(null);
+            return;
+          }
+          resolve(selected);
+        } });
+      });
+    }, _getDecision: async function _getDecision(context) {
+      const confirmHandler = scheduler2.ext.recurring.confirm;
+      let decision;
+      if (typeof confirmHandler === "function") {
+        decision = await confirmHandler(context);
+      } else {
+        decision = void 0;
+      }
+      if (decision === void 0) {
+        decision = await scheduler2.ext.recurring.confirmDefault(context);
+      }
+      if (decision === null) {
+        return null;
+      }
+      if (context.options && context.options.length > 0) {
+        if (context.options.indexOf(decision) === -1) {
+          console.warning(`[recurring extension] - the custom confirm handler returned a value ("${decision}") which is not in the allowed options list. The allowed options are: [${context.options.join(", ")}]. The operation will be cancelled.`);
+          return null;
+        }
+      }
+      return decision;
+    } };
+    scheduler2.ext.recurring.confirm = scheduler2.ext.recurring.confirmDefault;
+    function labelForDecision(decision, labels) {
+      if (decision === "occurrence") {
+        return labels.occurrence || scheduler2.locale.labels.button_edit_occurrence;
+      }
+      if (decision === "following") {
+        return labels.following || scheduler2.locale.labels.button_edit_occurrence_and_following;
+      }
+      if (decision === "series") {
+        return labels.series || scheduler2.locale.labels.button_edit_series;
+      }
+      return decision;
+    }
     function clearMilliseconds(date) {
       return new Date(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes(), date.getSeconds(), 0);
     }
@@ -18249,10 +18349,14 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
       if (ev.rrule.includes(";UNTIL=")) {
         ev.rrule = ev.rrule.split(";UNTIL=")[0];
       }
-      let parsedRRule = rrulestr(`RRULE:${ev.rrule};UNTIL=${toIcalString(setUTCPartsToDate(ev._end_date || ev.end_date))}`, { dtstart: ev.start_date });
-      let newRRULE = new RRule(parsedRRule.origOptions).toString().replace("RRULE:", "");
-      newRRULE = newRRULE.split("\n")[1];
-      ev.rrule = newRRULE;
+      let parsedRRule;
+      if (ev.rrule.includes(";COUNT=")) {
+        parsedRRule = rrulestr(`RRULE:${ev.rrule};UNTIL=${toIcalString(setUTCPartsToDate(ev._shorten_end_date))}`, { dtstart: ev.start_date });
+        delete parsedRRule.origOptions.count;
+      } else {
+        parsedRRule = rrulestr(`RRULE:${ev.rrule};UNTIL=${toIcalString(setUTCPartsToDate(ev._end_date || ev.end_date))}`, { dtstart: ev.start_date });
+      }
+      ev.rrule = new RRule(parsedRRule.origOptions).toString().replace("RRULE:", "").split("\n")[1];
     }
     function updateFollowingRRULE(id, ev) {
       if (!ev) {
@@ -18260,6 +18364,7 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
       }
       let rruleStringparts = ev.rrule.split(";");
       let updatedRRULE = [];
+      let interval;
       for (let i = 0; i < rruleStringparts.length; i++) {
         let splited = rruleStringparts[i].split("=");
         let code = splited[0];
@@ -18274,6 +18379,17 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
           const untilDate = rule.options.until;
           if (untilDate.valueOf() < ev.start_date.valueOf()) {
             ev._end_date = ev.end_date;
+          }
+        }
+        if (code === "INTERVAL") {
+          interval = Number(name);
+        }
+        if (code === "COUNT") {
+          if (ev._shorten_end_date) {
+            const start = scheduler2.date.date_part(new Date(ev._start_date));
+            const end = scheduler2.date.date_part(new Date(ev._shorten_end_date));
+            const days = Math.floor((end - start) / (1e3 * 60 * 60 * 24 * interval)) + 1;
+            name = name - days;
           }
         }
         updatedRRULE.push(code);
@@ -18415,8 +18531,10 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
       for (let i in scheduler2._events) {
         let tev = scheduler2._events[i];
         if (tev.recurring_event_id == id || scheduler2._is_virtual_event(tev.id) && tev.id.split("#")[0] == id) {
-          tev.text = data.text;
-          scheduler2.updateEvent(tev.id);
+          if (tev.start_date.valueOf() >= data.start_date.valueOf()) {
+            tev.text = data.text;
+            scheduler2.updateEvent(tev.id);
+          }
         }
       }
     }
@@ -18534,7 +18652,7 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
     scheduler2.attachEvent("onRecurringEventSave", function(id, data, is_new_event) {
       let ev = this.getEvent(id);
       let tempEvent = scheduler2._lame_clone(ev);
-      let tempDataRRULE = data.rrule;
+      let tempData = scheduler2._lame_clone(data);
       if (ev && isSeries(ev)) {
         if (!is_new_event && this._isFollowing(id)) {
           if (ev._removeFollowing) {
@@ -18590,10 +18708,8 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
               ev._shorten = true;
               updateFollowingRRULEOnSave(ev);
               scheduler2.callEvent("onEventChanged", [ev.id, ev]);
-              let followingEv = { ...tempEvent };
-              followingEv.text = data.text;
-              followingEv.duration = data.duration;
-              followingEv.rrule = tempDataRRULE;
+              let followingEv = { ...tempData };
+              followingEv._end_date = tempEvent._end_date;
               followingEv._start_date = null;
               followingEv.id = scheduler2.uid();
               scheduler2.addEvent(followingEv.start_date, followingEv.end_date, followingEv.text, followingEv.id, followingEv);
@@ -18761,43 +18877,28 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
         return this.showLightbox_rec(id);
       }
       if (formSetting === "ask") {
+        showRecurringScopeConfirmForLightbox(id, pid);
+      }
+      async function showRecurringScopeConfirmForLightbox(id2, pid2) {
         const locale2 = scheduler2.locale;
-        showModalbox([{ value: "Occurrence", label: locale2.labels.button_edit_occurrence, checked: true, callback: () => showRequiredLightbox(id, "Occurrence") }, { value: "Following", label: locale2.labels.button_edit_occurrence_and_following, callback: () => showRequiredLightbox(id, "Following") }, { value: "AllEvents", label: locale2.labels.button_edit_series, callback: () => showRequiredLightbox(id, "AllEvents") }]);
-      }
-    };
-    function showModalbox(options, callback) {
-      const locale = scheduler2.locale;
-      const haveChecked = options.find((o) => o.checked);
-      if (!haveChecked) {
-        options[0].checked = true;
-      }
-      const callbacks = options.reduce((result, o) => {
-        result[o.value] = o.callback;
-        return result;
-      }, {});
-      scheduler2.modalbox({ text: `<div class="dhx_edit_recurrence_options">
-				${options.map((option) => `<label class="dhx_styled_radio">
-					<input type="radio" value="${option.value}" name="option" ${option.checked ? "checked" : ""}>
-					${option.label}
-				</label>`).join("")}
-			</div>`, type: "recurring_mode", title: locale.labels.confirm_recurring, width: "auto", position: "middle", buttons: [{ label: locale.labels.message_ok, value: "ok", css: "rec_ok" }, { label: locale.labels.message_cancel, value: "cancel" }], callback: function(value, e) {
-        if (callback) {
-          callback(value, e);
-        }
-        if (value === "cancel") {
+        const occurrence = scheduler2.getEvent(id2);
+        const seriesEvent = scheduler2.getEvent(pid2);
+        const context = { origin: "lightbox", occurrence, series: seriesEvent, labels: { title: locale2.labels.confirm_recurring, ok: locale2.labels.message_ok, cancel: locale2.labels.message_cancel, occurrence: locale2.labels.button_edit_occurrence, following: locale2.labels.button_edit_occurrence_and_following, series: locale2.labels.button_edit_series }, options: ["occurrence", "following", "series"] };
+        const decision = await scheduler2.ext.recurring._getDecision(context);
+        if (decision === null) {
           return;
         }
-        const box = e.target.closest(".scheduler_modal_box");
-        const checked = box.querySelector("input[type='radio']:checked");
-        let selectedOption;
-        if (checked) {
-          selectedOption = checked.value;
+        if (decision === "occurrence") {
+          return showRequiredLightbox(id2, "Occurrence");
         }
-        if (selectedOption) {
-          callbacks[selectedOption]();
+        if (decision === "following") {
+          return showRequiredLightbox(id2, "Following");
         }
-      } });
-    }
+        if (decision === "series") {
+          return showRequiredLightbox(id2, "AllEvents");
+        }
+      }
+    };
     scheduler2._showRequiredModalBox = function(id, type) {
       let buttons;
       const locale = scheduler2.locale;
@@ -18919,17 +19020,30 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
           }
         }
       };
-      const btnAll = { value: "AllEvents", label: locale.labels.button_edit_series, callback: () => handleAllEvents(occurrence) };
-      const btnFollowing = { value: "Following", label: locale.labels.button_edit_occurrence_and_following, callback: () => handleFollowing(occurrence) };
-      const btnOccurrence = { value: "Occurrence", label: locale.labels.button_edit_occurrence, callback: () => handleOccurrence(occurrence), checked: true };
       if (type === "ask") {
-        buttons = [btnOccurrence, btnFollowing, btnAll];
+        buttons = ["occurrence", "following", "series"];
       } else {
-        buttons = [btnOccurrence, btnFollowing];
+        buttons = ["occurrence", "following"];
       }
-      showModalbox(buttons, (result) => {
-        if (result === "cancel") {
+      const context = { origin: "dnd", occurrence, series: event2, labels: { title: locale.labels.confirm_recurring, ok: locale.labels.message_ok, cancel: locale.labels.message_cancel, occurrence: locale.labels.button_edit_occurrence, following: locale.labels.button_edit_occurrence_and_following, series: locale.labels.button_edit_series }, options: buttons };
+      Promise.resolve(scheduler2.ext.recurring._getDecision(context)).then((decision) => {
+        if (!decision) {
           removeTempDraggedEvent();
+          return;
+        }
+        switch (decision) {
+          case "occurrence":
+            handleOccurrence(occurrence);
+            break;
+          case "following":
+            handleFollowing(occurrence);
+            break;
+          case "series":
+            handleAllEvents(occurrence);
+            break;
+          default:
+            removeTempDraggedEvent();
+            return;
         }
       });
     };
@@ -20981,73 +21095,103 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
     notImplemented.alert("Units", scheduler2.assert);
   }
   function url(scheduler2) {
-    scheduler2._get_url_nav = function() {
-      var p = {};
-      var data = (document.location.hash || "").replace("#", "").split(",");
-      for (var i = 0; i < data.length; i++) {
-        var s = data[i].split("=");
-        if (s.length == 2)
-          p[s[0]] = s[1];
+    function parseHashParameters() {
+      const parameters = {};
+      const raw = (document.location.hash || "").replace("#", "");
+      if (!raw) {
+        return parameters;
       }
-      return p;
+      const pairs = raw.split(",");
+      for (let i = 0; i < pairs.length; i++) {
+        const parts = pairs[i].split("=");
+        if (parts.length === 2) {
+          parameters[parts[0]] = parts[1];
+        }
+      }
+      return parameters;
+    }
+    scheduler2._get_url_nav = function() {
+      return parseHashParameters();
     };
-    scheduler2.attachEvent("onTemplatesReady", function() {
-      var first = true;
-      var s2d = scheduler2.date.str_to_date("%Y-%m-%d");
-      var d2s = scheduler2.date.date_to_str("%Y-%m-%d");
-      var select_event = scheduler2._get_url_nav().event || null;
-      scheduler2.attachEvent("onAfterEventDisplay", function(ev) {
-        select_event = null;
-        return true;
-      });
-      scheduler2.attachEvent("onBeforeViewChange", function(om, od, m, d) {
-        if (first) {
-          first = false;
-          var p = scheduler2._get_url_nav();
-          if (p.event) {
-            try {
-              if (scheduler2.getEvent(p.event)) {
-                setTimeout(function() {
-                  showEvent(p.event);
-                });
-                return false;
-              } else {
-                var handler = scheduler2.attachEvent("onXLE", function() {
-                  setTimeout(function() {
-                    showEvent(p.event);
-                  });
-                  scheduler2.detachEvent(handler);
-                });
-              }
-            } catch (e) {
-            }
+    const dateToString = scheduler2.date.date_to_str("%Y-%m-%d");
+    const originalGetInitialState = scheduler2._getInitialState;
+    scheduler2._getInitialState = function(provided) {
+      const baseState = originalGetInitialState.call(this, provided);
+      const url2 = scheduler2._get_url_nav ? scheduler2._get_url_nav() : null;
+      if (!url2) {
+        return baseState;
+      }
+      const nextState = { date: baseState.date, mode: baseState.mode };
+      if (url2.date) {
+        const stringToDate = scheduler2.date.str_to_date("%Y-%m-%d");
+        try {
+          const parsed = stringToDate(url2.date);
+          if (!isNaN(+parsed)) {
+            nextState.date = parsed;
           }
-          if (p.date || p.mode) {
-            try {
-              this.setCurrentView(p.date ? s2d(p.date) : null, p.mode || null);
-            } catch (e) {
-              this.setCurrentView(p.date ? s2d(p.date) : null, m);
-            }
-            return false;
+        } catch (e) {
+        }
+      }
+      if (url2.mode) {
+        try {
+          if (this.isViewExists(url2.mode)) {
+            nextState.mode = url2.mode;
           }
+        } catch (e) {
         }
-        var values = ["date=" + d2s(d || od), "mode=" + (m || om)];
-        if (select_event) {
-          values.push("event=" + select_event);
-        }
-        var text = "#" + values.join(",");
-        document.location.hash = text;
-        return true;
-      });
-      function showEvent(e) {
+      }
+      return nextState;
+    };
+    function updateHashFromState(optionalSelectedEventId) {
+      const currentDate = scheduler2._date || scheduler2.getState().date;
+      const currentMode = scheduler2.getState().mode;
+      const values = ["date=" + dateToString(currentDate), "mode=" + currentMode];
+      if (optionalSelectedEventId) {
+        values.push("event=" + optionalSelectedEventId);
+      }
+      document.location.hash = "#" + values.join(",");
+    }
+    function showEventWhenPossible(eventId) {
+      if (!eventId) {
+        return;
+      }
+      const tryShowNow = function() {
         if (scheduler2.$destroyed) {
+          return;
+        }
+        if (scheduler2.getEvent(eventId)) {
+          scheduler2.showEvent(eventId);
           return true;
         }
-        select_event = e;
-        if (scheduler2.getEvent(e)) {
-          scheduler2.showEvent(e);
-        }
+        return false;
+      };
+      if (tryShowNow()) {
+        return;
       }
+      const onLoadedId = scheduler2.attachEvent("onParse", function() {
+        tryShowNow();
+        scheduler2.detachEvent(onLoadedId);
+        return true;
+      });
+    }
+    let pendingSelectedEventId = null;
+    scheduler2.attachEvent("onSchedulerReady", function() {
+      const initialState = scheduler2._get_url_nav();
+      if (initialState.event) {
+        pendingSelectedEventId = initialState.event;
+        showEventWhenPossible(initialState.event);
+      }
+      updateHashFromState(pendingSelectedEventId);
+      return true;
+    });
+    scheduler2.attachEvent("onAfterEventDisplay", function() {
+      pendingSelectedEventId = null;
+      updateHashFromState(null);
+      return true;
+    });
+    scheduler2.attachEvent("onViewChange", function() {
+      updateHashFromState(pendingSelectedEventId);
+      return true;
     });
   }
   function week_agenda_restricted(scheduler2) {

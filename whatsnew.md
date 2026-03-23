@@ -1,3 +1,15 @@
+### 7.2.12
+
+Fix the crash on page reload in React Scheduler when using non-default themes with the cookie plugin enabled
+Fix the issue where the save URL in the data prop was not applied correctly in React Scheduler
+Fix the issue where editing a non-first occurrence of a recurring event in "This and following events" mode did not apply all lightbox field changes
+Fix the issue where dynamically changing Quick Info buttons based on event conditions did not update the popup correctly
+Fix the issue where modifying the text of a single recurring event occurrence was overwritten after editing a subsequent occurrence in "This and following events" mode
+Fix the overflow styles of the Quick Info popup to properly handle long event descriptions
+Fix the script error in React Scheduler that occurred when adding events to an existing dataset via the useState function
+Add the ability to replace the recurring event confirmation modal with a custom dialog.
+Add the ability to replace the recurring event confirmation modal in React Scheduler via the modals.onRecurrenceConfirm prop
+
 ### 7.2.11
 
 Fix the issue where new events were duplicated in React Scheduler if the save handler did not return a new ID
