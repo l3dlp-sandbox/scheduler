@@ -1,3 +1,8 @@
+### 7.2.13
+
+Fix the incorrect trial warning in React Scheduler
+Fix the regression with remote updates in React Scheduler where editing an event did not apply changes to the existing event
+
 ### 7.2.12
 
 Fix the crash on page reload in React Scheduler when using non-default themes with the cookie plugin enabled

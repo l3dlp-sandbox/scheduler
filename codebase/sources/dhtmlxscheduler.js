@@ -3,7 +3,7 @@
 })(this, function(exports2) {
   "use strict";/** @license
 
-dhtmlxScheduler v.7.2.12 Standard
+dhtmlxScheduler v.7.2.13 Standard
 
 To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product), please obtain Commercial/Enterprise or Ultimate license on our site https://dhtmlx.com/docs/products/dhtmlxScheduler/#licensing or contact us at sales@dhtmlx.com
 
@@ -1367,13 +1367,13 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
           }
         }
         if (typeof eventData.start_date === "string") {
-          eventData.start_date = scheduler2.templates.parse_date(eventData.start_date);
+          existingEvent.start_date = scheduler2.templates.parse_date(eventData.start_date);
         }
         if (typeof eventData.end_date === "string") {
-          eventData.end_date = scheduler2.templates.parse_date(eventData.end_date);
+          existingEvent.end_date = scheduler2.templates.parse_date(eventData.end_date);
         }
         if (eventData.original_start && typeof eventData.original_start === "string") {
-          eventData.original_start = scheduler2.templates.parse_date(eventData.original_start);
+          existingEvent.original_start = scheduler2.templates.parse_date(eventData.original_start);
         }
         scheduler2.callEvent("onEventChanged", [sid, existingEvent]);
         scheduler2.updateEvent(sid);
@@ -9271,7 +9271,7 @@ To use dhtmlxScheduler in non-GPL projects (and get Pro version of the product),
     }
   }
   function factoryMethod(extensionManager) {
-    const scheduler2 = { version: "7.2.12" };
+    const scheduler2 = { version: "7.2.13" };
     scheduler2.$stateProvider = StateService();
     scheduler2.getState = scheduler2.$stateProvider.getState;
     extend$n(scheduler2);
